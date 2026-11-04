@@ -1,0 +1,683 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Revi — учёт заведения в Telegram</title>
+<meta name="description" content="Revi — Telegram-бот для управления заведением: продажи, склад, ревизии, смены сотрудников и отчёты в одном месте.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Revi — учёт заведения в Telegram">
+<meta property="og:description" content="Продажи, склад, ревизии и смены сотрудников в одном Telegram-боте.">
+<meta property="og:image" content="https://madidevv.github.io/Revi/logo-512.png">
+<meta name="theme-color" content="#2a8cf0">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2064%2064%22%3E%0A%20%20%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%232a8cf0%22/%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%237c5cff%22/%3E%3C/linearGradient%3E%3C/defs%3E%0A%20%20%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2218%22%20fill%3D%22url%28%23g%29%22/%3E%0A%20%20%3Cpath%20d%3D%22M17%2046V18h9a7%207%200%200%201%200%2014h-3l7%2011L47%2022%22%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%226%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22/%3E%0A%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f7fb; --bg-2:#ffffff; --surface:#ffffff; --surface-2:#eef1f8;
+  --text:#121826; --muted:#5b6478; --line:#e3e7f0;
+  --accent:#2a8cf0; --accent-2:#1b6fd0; --accent-soft:#e3f0ff;
+  --green:#18a35a; --green-soft:#e2f6eb; --orange:#e5862b; --red:#d9434f;
+  --shadow:0 10px 30px rgba(18,24,38,.08);
+  --radius:18px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0c1018; --bg-2:#111723; --surface:#151c2a; --surface-2:#1c2536;
+    --text:#eef2fa; --muted:#98a3ba; --line:#253047;
+    --accent:#4ba3ff; --accent-2:#2f8bf0; --accent-soft:#16294a;
+    --green:#3ccf7f; --green-soft:#133524; --shadow:0 10px 30px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0c1018; --bg-2:#111723; --surface:#151c2a; --surface-2:#1c2536;
+  --text:#eef2fa; --muted:#98a3ba; --line:#253047;
+  --accent:#4ba3ff; --accent-2:#2f8bf0; --accent-soft:#16294a;
+  --green:#3ccf7f; --green-soft:#133524; --shadow:0 10px 30px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:Manrope,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+img,svg{display:block}
+.container{max-width:1160px;margin:0 auto;padding:0 20px}
+section{padding:96px 0}
+.eyebrow{display:inline-block;font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);padding:6px 12px;border-radius:999px;margin-bottom:16px}
+h1{font-size:clamp(36px,5.4vw,60px);line-height:1.08;font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(28px,3.6vw,42px);line-height:1.15;font-weight:800;letter-spacing:-.015em}
+h3{font-size:19px;font-weight:700;line-height:1.3}
+.lead{font-size:clamp(17px,1.6vw,20px);color:var(--muted);max-width:620px}
+.section-head{max-width:720px;margin-bottom:48px}
+.section-head p{color:var(--muted);font-size:18px;margin-top:14px}
+.center{text-align:center;margin-left:auto;margin-right:auto}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;gap:10px;font-weight:700;font-size:16px;padding:14px 24px;border-radius:14px;transition:transform .15s,background .15s,box-shadow .15s;border:1px solid transparent;cursor:pointer}
+.btn-primary{background:var(--accent);color:#fff;box-shadow:0 8px 20px rgba(42,140,240,.3)}
+.btn-primary:hover{background:var(--accent-2);transform:translateY(-2px)}
+.btn-ghost{border-color:var(--line);background:var(--surface)}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+.btn svg{width:20px;height:20px}
+
+/* header */
+header{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.nav{display:flex;align-items:center;justify-content:space-between;height:68px;gap:20px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:22px}
+.logo-svg{width:36px;height:36px;flex:none}
+footer .logo-svg{width:30px;height:30px}
+.nav-links{display:flex;gap:28px;font-weight:600;font-size:15px;color:var(--muted)}
+.nav-links a:hover{color:var(--text)}
+.nav-right{display:flex;align-items:center;gap:10px}
+.nav .btn{padding:10px 18px;font-size:15px}
+.theme-btn{width:42px;height:42px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--text);display:grid;place-items:center;cursor:pointer}
+.theme-btn svg{width:20px;height:20px}
+.burger{display:none}
+
+/* hero */
+.hero{padding:72px 0 96px;position:relative;overflow:hidden}
+.hero::before{content:"";position:absolute;inset:-200px -20% auto;height:600px;background:radial-gradient(closest-side,color-mix(in srgb,var(--accent) 22%,transparent),transparent);pointer-events:none}
+.hero-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:56px;align-items:center;position:relative}
+.hero h1 span{background:linear-gradient(90deg,var(--accent),#7c5cff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero .lead{margin:22px 0 32px}
+.hero-actions{display:flex;flex-wrap:wrap;gap:12px}
+.hero-points{display:flex;flex-wrap:wrap;gap:10px 22px;margin-top:32px;color:var(--muted);font-size:15px;font-weight:600}
+.hero-points span::before{content:"✓";color:var(--green);margin-right:7px;font-weight:800}
+
+/* phone mock */
+.phone{width:100%;max-width:380px;margin-left:auto;background:var(--surface);border:1px solid var(--line);border-radius:32px;box-shadow:var(--shadow);overflow:hidden}
+.phone-top{display:flex;align-items:center;gap:12px;padding:16px 18px;border-bottom:1px solid var(--line);background:var(--bg-2)}
+.phone-top .logo-svg{width:40px;height:40px;border-radius:50%;overflow:hidden}
+.phone-top b{display:block;font-size:15px}
+.phone-top small{color:var(--muted);font-size:12px}
+.chat{padding:18px;display:flex;flex-direction:column;gap:10px;background:var(--surface-2);min-height:440px}
+.msg{max-width:86%;padding:10px 14px;border-radius:16px;font-size:14px;line-height:1.5;opacity:0;transform:translateY(8px);animation:pop .5s forwards}
+.msg.bot{background:var(--surface);border-bottom-left-radius:6px;align-self:flex-start;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.msg.me{background:var(--accent);color:#fff;border-bottom-right-radius:6px;align-self:flex-end}
+.msg b{font-weight:700}
+.msg .row{display:flex;justify-content:space-between;gap:18px}
+.msg .up{color:var(--green);font-weight:700}
+.kb{display:grid;grid-template-columns:1fr 1fr;gap:6px;align-self:stretch;opacity:0;animation:pop .5s forwards}
+.kb span{background:var(--surface);border-radius:10px;text-align:center;padding:9px 6px;font-size:13px;font-weight:600;color:var(--text)}
+.msg:nth-child(1){animation-delay:.2s}.msg:nth-child(2){animation-delay:.9s}.kb{animation-delay:1.7s}
+@keyframes pop{to{opacity:1;transform:none}}
+
+/* stats strip */
+.strip{padding:0 0 24px}
+.strip-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.strip-item{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px}
+.strip-item b{display:block;font-size:22px;font-weight:800}
+.strip-item span{color:var(--muted);font-size:14px}
+
+/* features */
+.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:28px;transition:transform .2s,box-shadow .2s,border-color .2s}
+.card:hover{transform:translateY(-4px);box-shadow:var(--shadow);border-color:color-mix(in srgb,var(--accent) 40%,var(--line))}
+.icon{width:48px;height:48px;border-radius:14px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;margin-bottom:18px}
+.icon svg{width:24px;height:24px}
+.card p{color:var(--muted);margin-top:8px;font-size:15px}
+
+/* reports */
+.alt{background:var(--bg-2);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center}
+.checklist{list-style:none;margin-top:28px;display:grid;gap:14px}
+.checklist li{display:flex;gap:14px;align-items:flex-start}
+.checklist li i{flex:none;width:26px;height:26px;border-radius:8px;background:var(--green-soft);color:var(--green);display:grid;place-items:center;font-style:normal;font-weight:800;font-size:14px;margin-top:1px}
+.checklist li b{display:block}
+.checklist li span{color:var(--muted);font-size:15px}
+.report{background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:26px;box-shadow:var(--shadow)}
+.report-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+.report-head small{color:var(--muted)}
+.chip{font-size:12px;font-weight:700;padding:5px 10px;border-radius:999px;background:var(--green-soft);color:var(--green)}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:22px}
+.kpi{background:var(--surface-2);border-radius:14px;padding:14px}
+.kpi small{color:var(--muted);font-size:12px;display:block}
+.kpi b{font-size:19px}
+.bars{display:flex;align-items:flex-end;gap:8px;height:120px;margin-bottom:8px}
+.bars div{flex:1;background:linear-gradient(180deg,var(--accent),color-mix(in srgb,var(--accent) 45%,transparent));border-radius:8px 8px 4px 4px;transform-origin:bottom;transform:scaleY(0);transition:transform .8s cubic-bezier(.2,.8,.2,1)}
+.report.in .bars div{transform:scaleY(1)}
+.days{display:flex;gap:8px;color:var(--muted);font-size:12px;margin-bottom:20px}
+.days span{flex:1;text-align:center}
+.top-list{display:grid;gap:8px}
+.top-list div{display:flex;justify-content:space-between;font-size:14px;padding:10px 12px;border-radius:10px;background:var(--surface-2)}
+.top-list .warn{color:var(--red);font-weight:700}
+
+/* templates */
+.tpl-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+.tpl{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:26px;text-align:left}
+.tpl .emoji{font-size:34px;margin-bottom:14px}
+.tpl p{color:var(--muted);font-size:14px;margin-top:6px}
+
+/* integrations */
+.int-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.int{position:relative}
+.int .badge{position:absolute;top:22px;right:22px;font-size:12px;font-weight:700;color:var(--muted);border:1px solid var(--line);padding:4px 10px;border-radius:999px}
+.note{margin-top:22px;color:var(--muted);font-size:14px;text-align:center}
+
+/* roles */
+.roles{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.role{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:28px}
+.role h3{display:flex;align-items:center;gap:10px}
+.role ul{list-style:none;margin-top:16px;display:grid;gap:9px;color:var(--muted);font-size:15px}
+.role li::before{content:"•";color:var(--accent);font-weight:800;margin-right:8px}
+
+/* steps */
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;counter-reset:s}
+.step{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:28px;counter-increment:s}
+.step::before{content:counter(s);display:grid;place-items:center;width:40px;height:40px;border-radius:12px;background:var(--accent);color:#fff;font-weight:800;margin-bottom:18px}
+.step p{color:var(--muted);font-size:15px;margin-top:8px}
+
+/* faq */
+.faq{max-width:800px;margin:0 auto;display:grid;gap:12px}
+details{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px 24px}
+summary{cursor:pointer;font-weight:700;font-size:17px;list-style:none;display:flex;justify-content:space-between;gap:16px}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";font-size:22px;line-height:1;color:var(--accent);transition:transform .2s}
+details[open] summary::after{transform:rotate(45deg)}
+details p{color:var(--muted);margin-top:12px}
+
+/* problem */
+.pain{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.pain-col{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:30px}
+.pain-col h3{margin-bottom:18px;display:flex;align-items:center;gap:10px}
+.pain-col ul{list-style:none;display:grid;gap:14px}
+.pain-col li{display:flex;gap:12px;color:var(--muted)}
+.pain-col li i{flex:none;width:24px;height:24px;border-radius:7px;display:grid;place-items:center;font-style:normal;font-weight:800;font-size:13px;margin-top:1px}
+.pain-col.bad li i{background:color-mix(in srgb,var(--red) 14%,transparent);color:var(--red)}
+.pain-col.good{border-color:color-mix(in srgb,var(--accent) 45%,var(--line));box-shadow:var(--shadow)}
+.pain-col.good li{color:var(--text)}
+.pain-col.good li i{background:var(--green-soft);color:var(--green)}
+
+/* team */
+.team{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+.member{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:28px 22px;text-align:center}
+.avatar{width:84px;height:84px;border-radius:50%;margin:0 auto 16px;display:grid;place-items:center;color:#fff;font-weight:800;font-size:26px;letter-spacing:.02em;background:linear-gradient(135deg,var(--accent),#7c5cff)}
+.member:nth-child(2) .avatar{background:linear-gradient(135deg,#7c5cff,#c157e6)}
+.member:nth-child(3) .avatar{background:linear-gradient(135deg,#14b8a6,var(--accent))}
+.member:nth-child(4) .avatar{background:linear-gradient(135deg,#f59e0b,#ef5d7a)}
+.member .m-role{color:var(--muted);font-size:14px;margin-top:4px}
+.member .links{display:flex;justify-content:center;flex-wrap:wrap;gap:8px;margin-top:16px}
+.member .links a{font-size:13px;font-weight:700;padding:6px 12px;border-radius:999px;background:var(--accent-soft);color:var(--accent)}
+.member .links a:hover{background:var(--accent);color:#fff}
+
+/* contacts */
+.contact-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center}
+.contact-list{display:grid;gap:12px}
+.contact-item{display:flex;align-items:center;gap:16px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px 20px;transition:border-color .15s,transform .15s}
+a.contact-item:hover{border-color:var(--accent);transform:translateX(4px)}
+.contact-item .icon{margin:0;width:44px;height:44px;flex:none}
+.contact-item small{display:block;color:var(--muted);font-size:13px}
+.contact-item b{font-size:16px;word-break:break-word}
+
+/* cta */
+.cta{padding:0 0 96px}
+.cta-box{background:linear-gradient(135deg,#2a8cf0,#6a5cff);color:#fff;border-radius:28px;padding:64px 40px;text-align:center;position:relative;overflow:hidden}
+.cta-box h2{max-width:700px;margin:0 auto}
+.cta-box p{opacity:.9;margin:16px auto 30px;max-width:560px;font-size:18px}
+.cta-box .btn{background:#fff;color:#1b4fae}
+.cta-box .btn:hover{transform:translateY(-2px)}
+
+footer{border-top:1px solid var(--line);padding:36px 0;color:var(--muted);font-size:14px}
+.foot{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px}
+.foot nav{display:flex;gap:22px;flex-wrap:wrap}
+.foot a:hover{color:var(--text)}
+
+.reveal{opacity:0;transform:translateY(24px);transition:opacity .7s,transform .7s}
+.reveal.in{opacity:1;transform:none}
+@media (prefers-reduced-motion: reduce){.reveal{opacity:1;transform:none}.msg,.kb{animation:none;opacity:1;transform:none}.bars div{transform:none}}
+
+@media (max-width:980px){
+  .hero-grid,.split{grid-template-columns:1fr}
+  .phone{margin:0 auto}
+  .features-grid,.int-grid,.roles{grid-template-columns:1fr 1fr}
+  .tpl-grid,.steps,.strip-grid,.team{grid-template-columns:1fr 1fr}
+  .contact-grid{grid-template-columns:1fr}
+  .nav-links{display:none;position:absolute;top:68px;left:0;right:0;flex-direction:column;gap:0;background:var(--bg-2);border-bottom:1px solid var(--line);padding:8px 16px}
+  .nav-links.open{display:flex}
+  .nav-links a{padding:12px 4px;border-bottom:1px solid var(--line)}
+  .nav-links a:last-child{border:0}
+  .burger{display:grid}
+}
+@media (max-width:620px){
+  .container{padding:0 16px}
+  section{padding:68px 0}
+  .features-grid,.int-grid,.roles,.tpl-grid,.steps,.pain{grid-template-columns:1fr}
+  .team{gap:12px}.member{padding:22px 12px}.avatar{width:64px;height:64px;font-size:20px}
+  .nav-right .btn{display:none}
+  .kpis{grid-template-columns:1fr 1fr 1fr;gap:6px}
+  .kpi{padding:10px}.kpi b{font-size:15px}
+  .cta-box{padding:48px 22px}
+  .hero-actions .btn{flex:1;justify-content:center}
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute"><defs><linearGradient id="rg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2a8cf0"/><stop offset="1" stop-color="#7c5cff"/></linearGradient></defs></svg>
+
+<header>
+  <div class="container nav">
+    <a href="#" class="logo"><svg class="logo-svg" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="18" fill="url(#rg)"/><path d="M17 46V18h9a7 7 0 0 1 0 14h-3l7 11L47 22" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>Revi</a>
+    <nav class="nav-links" id="navLinks">
+      <a href="#features">Возможности</a>
+      <a href="#reports">Отчёты</a>
+      <a href="#templates">Шаблоны</a>
+      <a href="#integrations">Интеграции</a>
+      <a href="#team">Команда</a>
+      <a href="#contacts">Контакты</a>
+    </nav>
+    <div class="nav-right">
+      <button class="theme-btn" id="themeBtn" aria-label="Сменить тему">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      </button>
+      <button class="theme-btn burger" id="burger" aria-label="Меню">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+      <a class="btn btn-primary bot-link" href="https://t.me/ReviCoffeeBot" target="_blank" rel="noopener">Открыть бота</a>
+    </div>
+  </div>
+</header>
+
+<main>
+<!-- HERO -->
+<section class="hero">
+  <div class="container hero-grid">
+    <div>
+      <span class="eyebrow">Для кофеен, общепита и магазинов</span>
+      <h1>Всё заведение — <span>в одном чате</span></h1>
+      <p class="lead">Revi объединяет учёт продаж, склада и сотрудников в привычном интерфейсе Telegram. Владелец видит выручку, остатки и работу команды — без сложных программ и таблиц.</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary bot-link" href="https://t.me/ReviCoffeeBot" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9.8 15.3 9.4 20c.6 0 .8-.3 1.1-.6l2.7-2.5 5.5 4c1 .6 1.7.3 2-.9L24 3.6c.4-1.6-.6-2.2-1.6-1.8L1.3 10c-1.5.6-1.5 1.4-.3 1.8l5.4 1.7L19 5.6c.6-.4 1.1-.2.7.2"/></svg>
+          Начать в Telegram
+        </a>
+        <a class="btn btn-ghost" href="#contacts">Подключить заведение</a>
+      </div>
+      <div class="hero-points">
+        <span>Без установки приложений</span>
+        <span>Для всей команды</span>
+        <span>Отчёты в пару касаний</span>
+      </div>
+    </div>
+
+    <div class="phone" aria-hidden="true">
+      <div class="phone-top">
+        <svg class="logo-svg" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="18" fill="url(#rg)"/><path d="M17 46V18h9a7 7 0 0 1 0 14h-3l7 11L47 22" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div><b>Revi</b><small>@ReviCoffeeBot</small></div>
+      </div>
+      <div class="chat">
+        <div class="msg me">/start</div>
+        <div class="msg bot">
+          ☕ <b>Revi · Кофейня</b><br>Ты: владелец<br><br>Выбери раздел:<br><br>
+          ⚠️ <b>Нужна закупка:</b><br>• Молоко: заказать 1 л (остаток 2, минимум 3; ≈ 500 ₸)
+        </div>
+        <div class="kb"><span>📝 Ревизия</span><span>🧾 Продажа</span><span>☕ Рецепты</span><span>🕒 Моя смена</span><span>📦 Склад</span><span>📊 Аналитика</span><span>👥 Сотрудники</span><span>🧾 Касса</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STRIP -->
+<div class="strip">
+  <div class="container strip-grid">
+    <div class="strip-item reveal"><b>Продажи</b><span>и расходы за день</span></div>
+    <div class="strip-item reveal"><b>Склад</b><span>остатки и списания</span></div>
+    <div class="strip-item reveal"><b>Команда</b><span>смены и доступы</span></div>
+    <div class="strip-item reveal"><b>Отчёты</b><span>выручка и расхождения</span></div>
+  </div>
+</div>
+
+<!-- PROBLEM -->
+<section id="why">
+  <div class="container">
+    <div class="section-head reveal">
+      <span class="eyebrow">Зачем это нужно</span>
+      <h2>Знакомо? Revi решает это</h2>
+      <p>Владельцы небольших заведений тратят часы на учёт и всё равно не видят полной картины. Мы сделали инструмент, который убирает рутину.</p>
+    </div>
+    <div class="pain">
+      <div class="pain-col bad reveal">
+        <h3>😩 Без Revi</h3>
+        <ul>
+          <li><i>✕</i>Остатки в тетради или Excel, которые никто не обновляет</li>
+          <li><i>✕</i>Непонятно, куда «ушли» продукты и почему недостача</li>
+          <li><i>✕</i>Неизвестно, кто и сколько отработал на смене</li>
+          <li><i>✕</i>Отчёт о выручке собирается вручную вечерами</li>
+          <li><i>✕</i>Закупку вспоминают, когда товар уже закончился</li>
+        </ul>
+      </div>
+      <div class="pain-col good reveal">
+        <h3>😌 С Revi</h3>
+        <ul>
+          <li><i>✓</i>Остатки обновляются сами после каждой продажи и списания</li>
+          <li><i>✓</i>Ревизия показывает расхождения по каждой позиции</li>
+          <li><i>✓</i>Сотрудники отмечают смены в один клик</li>
+          <li><i>✓</i>Отчёты по выручке и расходам — в пару касаний</li>
+          <li><i>✓</i>Бот сам подсказывает, что пора закупить</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features" class="alt">
+  <div class="container">
+    <div class="section-head reveal">
+      <span class="eyebrow">Возможности</span>
+      <h2>Ежедневная работа заведения — без лишних программ</h2>
+      <p>Всё, что обычно разбросано по тетрадям, таблицам и чатам, теперь в одном боте.</p>
+    </div>
+    <div class="features-grid">
+      <div class="card reveal">
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8l9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg></div>
+        <h3>Каталог и остатки</h3>
+        <p>Ведите список товаров, цены и единицы измерения. Остатки обновляются автоматически после продаж и списаний.</p>
+      </div>
+      <div class="card reveal">
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/></svg></div>
+        <h3>Продажи и расходы</h3>
+        <p>Регистрируйте продажи за пару касаний и фиксируйте расходы — аренду, закупки, зарплаты и прочее.</p>
+      </div>
+      <div class="card reveal">
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/><path d="M10 11v5M14 11v5"/></svg></div>
+        <h3>Складские списания</h3>
+        <p>Контролируйте порчу, брак и расход на собственные нужды. Каждое списание видно с причиной и автором.</p>
+      </div>
+      <div class="card reveal">
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1z"/><path d="M16 5h2a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h2"/><path d="m9 13 2 2 4-4"/></svg></div>
+        <h3>Ревизии</h3>
+        <p>Проводите инвентаризацию прямо в Telegram: бот сравнит факт с учётом и покажет расхождения.</p>
+      </div>
+      <div class="card reveal">
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+        <h3>Смены сотрудников</h3>
+        <p>Сотрудники отмечают начало и конец смены, а вы видите, кто работает сейчас и сколько отработано.</p>
+      </div>
+      <div class="card reveal">
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></div>
+        <h3>Доступ и роли</h3>
+        <p>Сотрудники входят по ссылке-приглашению или коду, менеджер одобряет заявку. Каждый видит только свои разделы.</p>
+      </div>
+      <div class="card reveal">
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13v5a6 6 0 0 1-6 6h-1a6 6 0 0 1-6-6z"/><path d="M17 9h1.5a2.5 2.5 0 0 1 0 5H17"/><path d="M8 2v3M12 2v3"/></svg></div>
+        <h3>Рецепты</h3>
+        <p>Задайте состав напитков и блюд — ингредиенты будут списываться со склада при каждой продаже.</p>
+      </div>
+      <div class="card reveal">
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg></div>
+        <h3>Подсказки о закупке</h3>
+        <p>Бот сам напомнит, что заканчивается: сколько заказать, текущий остаток, минимум и примерная сумма.</p>
+      </div>
+      <div class="card reveal">
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V8l7-5 7 5v13"/><path d="M9 21v-6h6v6"/></svg></div>
+        <h3>Несколько заведений</h3>
+        <p>Работайте в разных точках из одного аккаунта и переключайтесь между ними в разделе «Заведения».</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- REPORTS -->
+<section id="reports" class="alt">
+  <div class="container split">
+    <div class="reveal">
+      <span class="eyebrow">Отчёты</span>
+      <h2>Видно, что происходит в заведении</h2>
+      <p class="lead" style="margin-top:14px">Revi собирает данные о продажах, складе и сменах в понятные отчёты, которые всегда под рукой.</p>
+      <ul class="checklist">
+        <li><i>✓</i><div><b>Выручка</b><span>по дням, неделям и месяцам</span></div></li>
+        <li><i>✓</i><div><b>Популярные товары</b><span>что продаётся лучше всего</span></div></li>
+        <li><i>✓</i><div><b>Расходы</b><span>куда уходят деньги</span></div></li>
+        <li><i>✓</i><div><b>Остатки и расхождения</b><span>что заканчивается и где недостача</span></div></li>
+      </ul>
+    </div>
+    <div class="report reveal" id="report">
+      <div class="report-head">
+        <div><b>Неделя</b><br><small>28 окт — 3 ноя</small></div>
+        <span class="chip">+9% к прошлой</span>
+      </div>
+      <div class="kpis">
+        <div class="kpi"><small>Выручка</small><b>612 400 ₸</b></div>
+        <div class="kpi"><small>Расходы</small><b>148 900 ₸</b></div>
+        <div class="kpi"><small>Чеков</small><b>904</b></div>
+      </div>
+      <div class="bars">
+        <div style="height:55%"></div><div style="height:62%"></div><div style="height:48%"></div><div style="height:70%"></div><div style="height:92%"></div><div style="height:100%"></div><div style="height:78%"></div>
+      </div>
+      <div class="days"><span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span></div>
+      <div class="top-list">
+        <div><span>🥇 Капучино</span><b>212 шт</b></div>
+        <div><span>🥈 Латте</span><b>168 шт</b></div>
+        <div><span>Ревизия: кофе в зёрнах</span><span class="warn">−0,6 кг</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TEMPLATES -->
+<section id="templates">
+  <div class="container">
+    <div class="section-head center reveal">
+      <span class="eyebrow">Шаблоны</span>
+      <h2>Настроен под ваш тип бизнеса</h2>
+      <p>Для разных заведений предусмотрены свои шаблоны — категории, товары и сценарии учёта.</p>
+    </div>
+    <div class="tpl-grid">
+      <div class="tpl card reveal"><div class="emoji">☕</div><h3>Кофейня</h3><p>Напитки, выпечка, учёт зерна, молока и сиропов.</p></div>
+      <div class="tpl card reveal"><div class="emoji">🍽️</div><h3>Общепит</h3><p>Блюда, продукты, списания и контроль кухни.</p></div>
+      <div class="tpl card reveal"><div class="emoji">💐</div><h3>Цветочный</h3><p>Цветы, букеты, порча и быстрые списания.</p></div>
+      <div class="tpl card reveal"><div class="emoji">👕</div><h3>Магазин одежды</h3><p>Товары, размеры, остатки и ревизии.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- INTEGRATIONS -->
+<section id="integrations" class="alt">
+  <div class="container">
+    <div class="section-head center reveal">
+      <span class="eyebrow">Интеграции и ИИ</span>
+      <h2>Работает с вашими системами</h2>
+      <p>Подключите кассу или POS-систему, а ИИ-помощник ответит на вопросы по данным заведения.</p>
+    </div>
+    <div class="int-grid">
+      <div class="card int reveal">
+        <span class="badge">Касса</span>
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2z"/><path d="M9 7h6M9 11h6M9 15h4"/></svg></div>
+        <h3>Webkassa</h3>
+        <p>Интеграция с онлайн-кассой для работы с чеками и продажами.</p>
+      </div>
+      <div class="card int reveal">
+        <span class="badge">POS</span>
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg></div>
+        <h3>Poster</h3>
+        <p>Связь с Poster POS для объединения данных о продажах и товарах.</p>
+      </div>
+      <div class="card int reveal">
+        <span class="badge">ИИ</span>
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 4.6L18.5 9l-4.6 1.9L12 15.5l-1.9-4.6L5.5 9l4.6-1.4z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg></div>
+        <h3>ИИ-помощник</h3>
+        <p>Спросите «Что продавалось хуже всего в октябре?» — и получите ответ по вашим данным.</p>
+      </div>
+    </div>
+    <p class="note reveal">Работа интеграций и ИИ-помощника зависит от их подключения и настройки.</p>
+  </div>
+</section>
+
+<!-- ROLES -->
+<section>
+  <div class="container">
+    <div class="section-head center reveal">
+      <span class="eyebrow">Для всей команды</span>
+      <h2>У каждого — своя роль</h2>
+    </div>
+    <div class="roles">
+      <div class="role reveal"><h3>👑 Владелец</h3><ul><li>Аналитика и касса</li><li>Склад, рецепты и ревизии</li><li>Сотрудники и настройки</li></ul></div>
+      <div class="role reveal"><h3>🧑‍💼 Менеджер</h3><ul><li>Одобрение заявок сотрудников</li><li>Каталог, склад и списания</li><li>Контроль смен команды</li></ul></div>
+      <div class="role reveal"><h3>🧑‍🍳 Сотрудник</h3><ul><li>«Моя смена» — начало и конец</li><li>Продажи и каталог</li><li>Участие в ревизии</li></ul></div>
+    </div>
+  </div>
+</section>
+
+<!-- STEPS -->
+<section class="alt">
+  <div class="container">
+    <div class="section-head center reveal">
+      <span class="eyebrow">Как начать</span>
+      <h2>Запуск за несколько минут</h2>
+    </div>
+    <div class="steps">
+      <div class="step reveal"><h3>Откройте бота</h3><p>Перейдите в Revi по кнопке на сайте и нажмите «Старт».</p></div>
+      <div class="step reveal"><h3>Войдите по приглашению</h3><p>Откройте ссылку-приглашение от руководителя или введите код.</p></div>
+      <div class="step reveal"><h3>Дождитесь одобрения</h3><p>Менеджер подтвердит заявку и назначит роль.</p></div>
+      <div class="step reveal"><h3>Работайте</h3><p>Нажмите /start — откроется меню с вашими разделами.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- TEAM -->
+<section id="team" class="alt">
+  <div class="container">
+    <div class="section-head center reveal">
+      <span class="eyebrow">Команда</span>
+      <h2>Кто создаёт Revi</h2>
+      <p>Мы — команда, которая делает учёт для малого бизнеса простым и понятным.</p>
+    </div>
+    <div class="team" id="teamGrid"></div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section id="faq">
+  <div class="container">
+    <div class="section-head center reveal">
+      <span class="eyebrow">Вопросы</span>
+      <h2>Частые вопросы</h2>
+    </div>
+    <div class="faq">
+      <details class="reveal"><summary>Нужно ли устанавливать приложение?</summary><p>Нет. Revi работает внутри Telegram — достаточно открыть бота на телефоне или компьютере.</p></details>
+      <details class="reveal"><summary>Подойдёт ли Revi моему заведению?</summary><p>Есть готовые шаблоны для кофеен, общепита, цветочных и магазинов одежды. Каталог и категории можно настроить под себя.</p></details>
+      <details class="reveal"><summary>Как сотрудник попадает в заведение?</summary><p>Руководитель отправляет ссылку-приглашение или код. Сотрудник открывает бота, вводит код, а менеджер одобряет заявку — после этого открывается доступ.</p></details>
+      <details class="reveal"><summary>Можно ли работать в нескольких заведениях?</summary><p>Да. Один аккаунт Telegram может состоять в нескольких заведениях с разными ролями — переключайтесь в разделе «Заведения».</p></details>
+      <details class="reveal"><summary>Могут ли сотрудники видеть отчёты по выручке?</summary><p>Только если вы дадите им такой доступ. Владельцы и менеджеры сами управляют ролями и правами.</p></details>
+      <details class="reveal"><summary>Как работают интеграции с Webkassa и Poster?</summary><p>Интеграции подключаются отдельно. Их работа зависит от подключения и настройки на стороне вашего заведения.</p></details>
+      <details class="reveal"><summary>Что умеет ИИ-помощник?</summary><p>Отвечает на вопросы по данным вашего заведения: продажам, расходам, остаткам. Доступность зависит от настройки.</p></details>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACTS -->
+<section id="contacts" class="alt">
+  <div class="container contact-grid">
+    <div class="reveal">
+      <span class="eyebrow">Контакты</span>
+      <h2>Хотите подключить своё заведение?</h2>
+      <p class="lead" style="margin:14px 0 28px">Напишите нам — поможем настроить Revi под ваш бизнес, перенести каталог и подключить команду.</p>
+      <a class="btn btn-primary bot-link" href="https://t.me/ReviCoffeeBot" target="_blank" rel="noopener">Открыть бота</a>
+    </div>
+    <div class="contact-list reveal" id="contactList"></div>
+  </div>
+</section>
+
+<!-- CTA -->
+<div class="cta">
+  <div class="container">
+    <div class="cta-box reveal">
+      <h2>Начните видеть своё заведение целиком</h2>
+      <p>Продажи, склад и команда — в одном привычном Telegram-чате.</p>
+      <a class="btn bot-link" href="https://t.me/ReviCoffeeBot" target="_blank" rel="noopener">Открыть Revi в Telegram →</a>
+    </div>
+  </div>
+</div>
+</main>
+
+<footer>
+  <div class="container foot">
+    <a href="#" class="logo" style="font-size:18px"><svg class="logo-svg" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="18" fill="url(#rg)"/><path d="M17 46V18h9a7 7 0 0 1 0 14h-3l7 11L47 22" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>Revi</a>
+    <nav>
+      <a href="#features">Возможности</a>
+      <a href="#reports">Отчёты</a>
+      <a href="#team">Команда</a>
+      <a href="#contacts">Контакты</a>
+      <a class="bot-link" href="https://t.me/ReviCoffeeBot" target="_blank" rel="noopener">Telegram</a>
+    </nav>
+    <span>© <span id="year"></span> Revi</span>
+  </div>
+</footer>
+
+<script>
+/* =====================  НАСТРОЙКИ САЙТА  =====================
+   Меняйте только этот блок. Пустые поля ("") на сайте не показываются. */
+
+// Ссылка на бота — при смене имени бота поменяйте только эту строку
+const BOT_URL = "https://t.me/ReviCoffeeBot";
+
+// Команда: role — роль в проекте, telegram — ник без @, email, linkedin/instagram — полная ссылка
+const TEAM = [
+  { name: "Yessen Madi",      role: "", telegram: "", email: "", link: "" },
+  { name: "Abdrali Ular",     role: "", telegram: "", email: "", link: "" },
+  { name: "Sakitay Nurlan",   role: "", telegram: "", email: "", link: "" },
+  { name: "Saparbek Aruzhan", role: "", telegram: "", email: "", link: "" },
+];
+
+// Общие контакты проекта
+const CONTACTS = {
+  telegram:  "ReviCoffeeBot", // ник без @ (бот или менеджер)
+  phone:     "",              // например "+7 700 000 00 00"
+  email:     "",              // например "hello@revi.kz"
+  instagram: "",              // ник без @
+};
+/* ============================================================= */
+
+const esc = t => String(t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+document.getElementById('teamGrid').innerHTML = TEAM.map(m => {
+  const initials = m.name.split(/\s+/).map(w => w[0]).join('').slice(0,2).toUpperCase();
+  const links = [
+    m.telegram && `<a href="https://t.me/${esc(m.telegram)}" target="_blank" rel="noopener">Telegram</a>`,
+    m.email && `<a href="mailto:${esc(m.email)}">Email</a>`,
+    m.link && `<a href="${esc(m.link)}" target="_blank" rel="noopener">Профиль</a>`,
+  ].filter(Boolean).join('');
+  return `<div class="member reveal"><div class="avatar">${initials}</div><h3>${esc(m.name)}</h3>`
+    + `<div class="m-role">${esc(m.role || 'Команда Revi')}</div>${links ? `<div class="links">${links}</div>` : ''}</div>`;
+}).join('');
+
+const ICONS = {
+  telegram: '<path d="M21 4 3 11l6 2 2 6 3-4 5 4z"/><path d="m9 13 8-6"/>',
+  phone: '<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/>',
+  email: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
+  instagram: '<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/>',
+};
+const C = CONTACTS, items = [
+  C.telegram && ['telegram','Telegram','@'+C.telegram,'https://t.me/'+C.telegram],
+  C.phone && ['phone','Телефон',C.phone,'tel:'+C.phone.replace(/[^\d+]/g,'')],
+  C.email && ['email','Email',C.email,'mailto:'+C.email],
+  C.instagram && ['instagram','Instagram','@'+C.instagram,'https://instagram.com/'+C.instagram],
+].filter(Boolean);
+document.getElementById('contactList').innerHTML = items.map(([k,label,val,href]) =>
+  `<a class="contact-item" href="${esc(href)}" target="_blank" rel="noopener"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONS[k]}</svg></span><span><small>${label}</small><b>${esc(val)}</b></span></a>`
+).join('');
+document.querySelectorAll('.bot-link').forEach(a => a.href = BOT_URL);
+document.getElementById('year').textContent = new Date().getFullYear();
+
+// тема
+const root = document.documentElement, themeBtn = document.getElementById('themeBtn');
+try { const t = localStorage.getItem('revi-theme'); if (t) root.dataset.theme = t; } catch(e){}
+themeBtn.addEventListener('click', () => {
+  const dark = root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  root.dataset.theme = dark ? 'light' : 'dark';
+  try { localStorage.setItem('revi-theme', root.dataset.theme); } catch(e){}
+});
+
+// мобильное меню
+const links = document.getElementById('navLinks');
+document.getElementById('burger').addEventListener('click', () => links.classList.toggle('open'));
+links.querySelectorAll('a').forEach(a => a.addEventListener('click', () => links.classList.remove('open')));
+
+// анимация появления
+const io = new IntersectionObserver(es => es.forEach(e => {
+  if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+}), { threshold: .12 });
+document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+</script>
+</body>
+</html>
